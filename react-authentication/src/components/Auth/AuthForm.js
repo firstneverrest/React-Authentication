@@ -1,10 +1,16 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useContext } from "react";
+import { useHistory } from "react-router-dom";
 
+import AuthContext from "../../store/auth-context";
 import classes from "./AuthForm.module.css";
 
 const AuthForm = () => {
   const emailInputRef = useRef();
   const passwordInputRef = useRef();
+
+  const history = useHistory();
+
+  const authCtx = useContext(AuthContext);
 
   const [isLogin, setIsLogin] = useState(true);
   const [errorOccurred, setErrorOccurred] = useState(false);
@@ -19,26 +25,31 @@ const AuthForm = () => {
 
     const enteredEmail = emailInputRef.current.value;
     const enteredPassword = passwordInputRef.current.value;
-
     // add validation (optional)
+
+    let url;
     if (isLogin) {
+      url =
+        "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCaQ4y6_QLzv5A7qF02ka9hdflrVpnUDCk";
     } else {
-      fetch(
-        "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyCaQ4y6_QLzv5A7qF02ka9hdflrVpnUDCk",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            email: enteredEmail,
-            password: enteredPassword,
-            returnSecureToken: true,
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      ).then((response) => {
+      url =
+        "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyCaQ4y6_QLzv5A7qF02ka9hdflrVpnUDCk";
+    }
+    fetch(url, {
+      method: "POST",
+      body: JSON.stringify({
+        email: enteredEmail,
+        password: enteredPassword,
+        returnSecureToken: true,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => {
         if (response.ok) {
-          //
+          setErrorOccurred(false);
+          return response.json();
         } else {
           response.json().then((data) => {
             // show an error message
@@ -48,8 +59,17 @@ const AuthForm = () => {
             }
           });
         }
+      })
+      .then((data) => {
+        const expirationTime = new Data(
+          new Data().getTime() + +data.expiresIn * 1000
+        );
+        authCtx.login(data.idToken, expirationTime.toISOString())  
+      history.replace("/");
+      })
+      .catch((error) => {
+        alert(error.message);
       });
-    }
   };
 
   return (
