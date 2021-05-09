@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 let logoutTimer;
 
@@ -49,7 +49,7 @@ export const AuthContextProvider = (props) => {
   // for example, falsey(0, null, undefined) will become false, otherwise, true
   const userIsLoggedIn = !!token;
 
-  const logoutHandler = () => {
+  const logoutHandler = useCallback(() => {
     setToken(null);
     localStorage.removeItem("token");
     localStorage.setItem("expirationTime", expirationTime);
@@ -57,7 +57,7 @@ export const AuthContextProvider = (props) => {
     if (logoutTimer) {
       clearTimeout(logoutTimer);
     }
-  };
+  }, []);
 
   const loginHandler = (token) => {
     setToken(token);
@@ -72,7 +72,8 @@ export const AuthContextProvider = (props) => {
   useEffect(() => {
     logoutTimer = setTimeout(loginHandler, tokenData.duration);
 
-  }, [tokenData])
+    // prevent unnecessary loginHandler rendering
+  }, [tokenData, logoutHandler])
 
   const contextValue = {
     token: token,
