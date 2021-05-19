@@ -10,21 +10,21 @@ const AuthContext = React.createContext({
 });
 
 const calculateRemainingTime = (expirationTime) => {
-  const currentTime = new Data().getTime(); // millisecond
-  const adjExpirationTime = new Data(expirationTime).getTime();
+  const currentTime = new Date().getTime();
+  const adjExpirationTime = new Date(expirationTime).getTime();
 
-  const remainingTime = (adjExpirationTime - currentTime);
+  const remainingDuration = adjExpirationTime - currentTime;
 
-  return remainingTime;
+  return remainingDuration;
 };
 
 const retrieveStoredToken = () => {
   const storedToken = localStorage.getItem("token");
-  const storeExpirationDate = localStorage.getItem("expirationTime");
+  const storedExpirationDate = localStorage.getItem("expirationTime");
 
-  const remainingTime = calculateRemainingTime(storeExpirationDate);
+  const remainingTime = calculateRemainingTime(storedExpirationDate);
 
-  if (remainingTime <= 60000) {
+  if (remainingTime <= 3600) {
     localStorage.removeItem("token");
     localStorage.removeItem("expirationTime");
     return null;
@@ -38,6 +38,7 @@ const retrieveStoredToken = () => {
 
 export const AuthContextProvider = (props) => {
   const tokenData = retrieveStoredToken();
+
   let initialToken;
   if (tokenData) {
     initialToken = tokenData.token;
@@ -45,21 +46,19 @@ export const AuthContextProvider = (props) => {
 
   const [token, setToken] = useState(initialToken);
 
-  // !! in javascript is to converts object to boolean
-  // for example, falsey(0, null, undefined) will become false, otherwise, true
   const userIsLoggedIn = !!token;
 
   const logoutHandler = useCallback(() => {
     setToken(null);
     localStorage.removeItem("token");
-    localStorage.setItem("expirationTime", expirationTime);
+    localStorage.removeItem("expirationTime");
 
     if (logoutTimer) {
       clearTimeout(logoutTimer);
     }
   }, []);
 
-  const loginHandler = (token) => {
+  const loginHandler = (token, expirationTime) => {
     setToken(token);
     localStorage.setItem("token", token);
     localStorage.setItem("expirationTime", expirationTime);
@@ -70,10 +69,11 @@ export const AuthContextProvider = (props) => {
   };
 
   useEffect(() => {
-    logoutTimer = setTimeout(loginHandler, tokenData.duration);
-
-    // prevent unnecessary loginHandler rendering
-  }, [tokenData, logoutHandler])
+    if (tokenData) {
+      console.log(tokenData.duration);
+      logoutTimer = setTimeout(logoutHandler, tokenData.duration);
+    }
+  }, [tokenData, logoutHandler]);
 
   const contextValue = {
     token: token,
